@@ -127,7 +127,7 @@ def lex(line):
                     raise Exception(f'unknown identifier \'{id}\'!')
             else:
                 toks += [('f', fnmap[id], fnargs[id])]
-        elif line[i] in '+-*/%&|^~(),':
+        elif line[i] in '+-*/%^~(),':
             toks += [(line[i], 0)]
             i += 1
         elif line[i] in '<>!=':
@@ -137,10 +137,37 @@ def lex(line):
                 op += '='
                 i += 1
             toks += [(op, 0)]
+        elif line[i] in '&|':
+            if i != len(line) and line[i + 1] == line[i]:
+                toks += [(line[i] * 2, 0)]
+                i += 2
+            else:
+                toks += [(line[i], 0)]
+                i += 1
         else:
             raise Exception('invalid expression!')
 
 class Parser:
+    def parseor(self):
+        lhs = self.parseand()
+        if not len(self.toks) or self.toks[0][0] not in ['||']:
+            return lhs
+        op = self.toks.pop(0)
+        rhs = self.parseand()
+        if op[0] in ['||']:
+            self.toks = [('b', 1 if lhs[1] or rhs[1] else 0)] + self.toks
+        return self.parseor()
+    
+    def parseand(self):
+        lhs = self.parseequal()
+        if not len(self.toks) or self.toks[0][0] not in ['&&']:
+            return lhs
+        op = self.toks.pop(0)
+        rhs = self.parseequal()
+        if op[0] in ['&&']:
+            self.toks = [('b', 1 if lhs[1] and rhs[1] else 0)] + self.toks
+        return self.parseand()
+    
     def parseequal(self):
         lhs = self.parsecmp()
         if not len(self.toks) or self.toks[0][0] not in ['=', '==', '!=']:
@@ -234,10 +261,10 @@ class Parser:
                 # in a list that is then used to call the function and produce
                 # the expected output.
                 self.toks.pop(0)
-                args = [self.parseequal()]
+                args = [self.parseor()]
                 while self.toks[0][0] == ',':
                     self.toks.pop(0)
-                    args += [self.parseequal()]
+                    args += [self.parseor()]
                 assert self.toks.pop(0)[0] == ')'
                 assert len(args) == fn[2]
                 return fn[1](*args)
@@ -252,7 +279,7 @@ class Parser:
             return self.toks.pop(0)
         elif self.toks[0][0] == '(':
             self.toks.pop(0)
-            expr = self.parseequal()
+            expr = self.parseor()
             assert self.toks.pop(0)[0] == ')'
             return expr
     
@@ -260,7 +287,7 @@ class Parser:
         try:
             self.toks = toks
             assert len(self.toks)
-            result = self.parseequal()
+            result = self.parseor()
             assert not len(self.toks)
             if result[0] == 'b':
                 return 'true' if result[1] else 'false'
