@@ -48,43 +48,44 @@ fnargs = {
 
 # dictionary of each function that can be used in an expression.
 fnmap = {
-    'sqrt':   lambda x: ('n', math.sqrt(x[1])),
-    'cbrt':   lambda x: ('n', math.cbrt(x[1])),
-    'abs':    lambda x: ('n', x[1] if x[1] >= 0 else -x[1]),
+    'sqrt':  lambda x: ('n', math.sqrt(x[1])),
+    'cbrt':  lambda x: ('n', math.cbrt(x[1])),
+    'abs':   lambda x: ('n', x[1] if x[1] >= 0 else -x[1]),
     
-    'float':  lambda x: ('n', x[1]),
-    'int':    lambda x: ('n', math.trunc(x[1])),
-    'bool':   lambda x: ('b', 1 if x[1] else 0),
+    'float': lambda x: ('n', x[1]),
+    'int':   lambda x: ('n', math.trunc(x[1])),
+    'bool':  lambda x: ('b', 1 if x[1] else 0),
     
-    'floor':  lambda x: ('n', math.floor(x[1])),
-    'ceil':   lambda x: ('n', math.ceil(x[1])),
-    'trunc':  lambda x: ('n', math.trunc(x[1])),
+    'floor': lambda x: ('n', math.floor(x[1])),
+    'ceil':  lambda x: ('n', math.ceil(x[1])),
+    'trunc': lambda x: ('n', math.trunc(x[1])),
     
-    'exp':    lambda x: ('n', math.exp(x[1])),
-    'exp2':   lambda x: ('n', 2.0 ** x[1]),
-    'exp10':  lambda x: ('n', 10.0 ** x[1]),
+    'exp':   lambda x: ('n', math.exp(x[1])),
+    'exp2':  lambda x: ('n', 2.0 ** x[1]),
+    'exp10': lambda x: ('n', 10.0 ** x[1]),
     
-    'log':    lambda x: ('n', math.log(x[1])),
-    'log2':   lambda x: ('n', math.log2(x[1])),
-    'log10':  lambda x: ('n', math.log10(x[1])),
+    'log':   lambda x: ('n', math.log(x[1])),
+    'log2':  lambda x: ('n', math.log2(x[1])),
+    'log10': lambda x: ('n', math.log10(x[1])),
     
-    'sin':    lambda x: ('n', math.sin(x[1])),
-    'cos':    lambda x: ('n', math.cos(x[1])),
-    'tan':    lambda x: ('n', math.tan(x[1])),
-    'asin':   lambda x: ('n', math.asin(x[1])),
-    'acos':   lambda x: ('n', math.acos(x[1])),
-    'atan':   lambda x: ('n', math.atan(x[1])),
-    'atan2':  lambda x, y: ('n', math.atan2(x[1], y[1])),
+    'sin':   lambda x: ('n', math.sin(x[1])),
+    'cos':   lambda x: ('n', math.cos(x[1])),
+    'tan':   lambda x: ('n', math.tan(x[1])),
+    'asin':  lambda x: ('n', math.asin(x[1])),
+    'acos':  lambda x: ('n', math.acos(x[1])),
+    'atan':  lambda x: ('n', math.atan(x[1])),
+    'atan2': lambda x, y: ('n', math.atan2(x[1], y[1])),
     
-    'sinh':   lambda x: ('n', math.sinh(x[1])),
-    'cosh':   lambda x: ('n', math.cosh(x[1])),
-    'tanh':   lambda x: ('n', math.tanh(x[1])),
-    'asinh':  lambda x: ('n', math.asinh(x[1])),
-    'acosh':  lambda x: ('n', math.acosh(x[1])),
-    'atanh':  lambda x: ('n', math.atanh(x[1])),
+    'sinh':  lambda x: ('n', math.sinh(x[1])),
+    'cosh':  lambda x: ('n', math.cosh(x[1])),
+    'tanh':  lambda x: ('n', math.tanh(x[1])),
+    'asinh': lambda x: ('n', math.asinh(x[1])),
+    'acosh': lambda x: ('n', math.acosh(x[1])),
+    'atanh': lambda x: ('n', math.atanh(x[1])),
 }
 
 def lex(line):
+    line = line.lower()
     toks = []
     i = 0
     while True:
@@ -111,14 +112,15 @@ def lex(line):
                     num += line[i]
                     i += 1
             toks += [('n', float(num))]
-        elif line[i].lower() in 'abcdefghijklmnopqrstuvwxyz':
-            id = line[i].lower()
+        elif line[i] in 'abcdefghijklmnopqrstuvwxyz':
+            id = line[i]
             i += 1
             while True:
-                if i == len(line) or line[i].lower() not in 'abcdefghijklmnopqrstuvwxyz0123456789':
+                if i == len(line) or line[i] not in \
+                    'abcdefghijklmnopqrstuvwxyz0123456789':
                     break
                 else:
-                    id += line[i].lower()
+                    id += line[i]
                     i += 1
             if fnmap.get(id) is None:
                 if constmap.get(id) is not None:
@@ -138,7 +140,7 @@ def lex(line):
                 i += 1
             toks += [(op, 0)]
         elif line[i] in '&|':
-            if i != len(line) and line[i + 1] == line[i]:
+            if i + 1 != len(line) and line[i + 1] == line[i]:
                 toks += [(line[i] * 2, 0)]
                 i += 2
             else:
@@ -291,10 +293,10 @@ class Parser:
             assert not len(self.toks)
             if result[0] == 'b':
                 return 'true' if result[1] else 'false'
-            # make output be printed without a .0 if possible.
             else:
+                # make output be printed without a .0 if possible.
                 rfloor = int(math.floor(result[1]))
-                return rfloor if result[1] == rfloor else result[1]
+                return str(rfloor if result[1] == rfloor else result[1])
         except:
             raise Exception('invalid expression!')
 
