@@ -178,16 +178,19 @@ class Parser:
         assert self.toks[0][0] in 'fn('
         if self.toks[0][0] == 'f':
             fn = self.toks.pop(0)
-            assert self.toks.pop(0)[0] == '('
-            args = [self.parseterm()]
-            while self.toks[0][0] == ',':
+            if self.toks[0][0] == '(':
                 self.toks.pop(0)
-                args += [self.parseterm()]
-            assert self.toks.pop(0)[0] == ')'
-            if len(args) != fn[2]:
-                raise Exception()
-            else:
+                args = [self.parseterm()]
+                while self.toks[0][0] == ',':
+                    self.toks.pop(0)
+                    args += [self.parseterm()]
+                assert self.toks.pop(0)[0] == ')'
+                assert len(args) == fn[2]
                 return fn[1](*args)
+            else:
+                arg = self.parseunary()
+                assert fn[2] == 1
+                return fn[1](arg)
         elif self.toks[0][0] == 'n':
             return self.toks.pop(0)[1]
         elif self.toks[0][0] == '(':
