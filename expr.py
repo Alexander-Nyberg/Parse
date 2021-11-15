@@ -10,6 +10,10 @@ fnargs = {
     'cbrt':  1,
     'abs':   1,
     
+    'floor': 1,
+    'ceil':  1,
+    'trunc': 1,
+    
     'exp':   1,
     'exp2':  1,
     'exp10': 1,
@@ -38,6 +42,10 @@ fnmap = {
     'sqrt':   lambda x: math.sqrt(x),
     'cbrt':   lambda x: math.cbrt(x),
     'abs':    lambda x: x if x >= 0 else -x,
+    
+    'floor':  lambda x: math.floor(x),
+    'ceil':   lambda x: math.ceil(x),
+    'trunc':  lambda x: math.trunc(x),
     
     'exp':    lambda x: math.exp(x),
     'exp2':   lambda x: 2.0 ** x,
@@ -146,11 +154,11 @@ class Parser:
         op = self.toks.pop(0)
         rhs = self.parseunary()
         if op[0] == '&':
-            self.toks = [('n', lhs & rhs)] + self.toks
+            self.toks = [('n', int(lhs) & int(rhs))] + self.toks
         elif op[0] == '|':
-            self.toks = [('n', lhs | rhs)] + self.toks
+            self.toks = [('n', int(lhs) | int(rhs))] + self.toks
         elif op[0] == '^':
-            self.toks = [('n', lhs ^ rhs)] + self.toks
+            self.toks = [('n', int(lhs) ^ int(rhs))] + self.toks
         return self.parsebit()
     
     def parseunary(self):
@@ -194,7 +202,8 @@ class Parser:
             assert len(self.toks)
             result = self.parseterm()
             assert not len(self.toks)
-            return result
+            rfloor = int(math.floor(result))
+            return rfloor if result == rfloor else result
         except:
             raise Exception('invalid expression!')
 
