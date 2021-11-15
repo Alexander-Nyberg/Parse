@@ -1,10 +1,14 @@
 import math
 
+# dictionary of valid constants.
 constmap = {
-    'e':  math.e,
-    'pi': math.pi,
+    'true':  ('n', 1),
+    'false': ('n', 0),
+    'e':     ('n', math.e),
+    'pi':    ('n', math.pi),
 }
 
+# dictionary of how many arguments each function expects.
 fnargs = {
     'sqrt':  1,
     'cbrt':  1,
@@ -38,6 +42,7 @@ fnargs = {
     'atanh': 1,
 }
 
+# dictionary of each function that can be used in an expression.
 fnmap = {
     'sqrt':   lambda x: math.sqrt(x),
     'cbrt':   lambda x: math.cbrt(x),
@@ -109,7 +114,7 @@ def lex(line):
                     i += 1
             if fnmap.get(id) is None:
                 if constmap.get(id) is not None:
-                    toks += [('n', constmap[id])]
+                    toks += [constmap[id]]
                 else:
                     raise Exception(f'unknown identifier \'{id}\'!')
             else:
@@ -117,10 +122,45 @@ def lex(line):
         elif line[i] in '+-*/%&|^~(),':
             toks += [(line[i], 0)]
             i += 1
+        elif line[i] in '<>!=':
+            op = line[i]
+            i += 1
+            if i != len(line) and line[i] == '=':
+                op += '='
+                i += 1
+            toks += [(op, 0)]
         else:
             raise Exception('invalid expression!')
 
 class Parser:
+    def parseequal(self):
+        lhs = self.parsecmp()
+        if not len(self.toks) or self.toks[0][0] not in ['=', '==', '!=']:
+            return lhs
+        op = self.toks.pop(0)
+        rhs = self.parsecmp()
+        if op[0] == '=' or op[0] == '==':
+            self.toks = [('n', 1 if lhs == rhs else 0)] + self.toks
+        elif op[0] == '!=':
+            self.toks = [('n', 1 if lhs != rhs else 0)] + self.toks
+        return self.parseequal()
+    
+    def parsecmp(self):
+        lhs = self.parseterm()
+        if not len(self.toks) or self.toks[0][0] not in ['<', '<=', '>', '>=']:
+            return lhs
+        op = self.toks.pop(0)
+        rhs = self.parseterm()
+        if op[0] == '<':
+            self.toks = [('n', 1 if lhs < rhs else 0)] + self.toks
+        elif op[0] == '<=':
+            self.toks = [('n', 1 if lhs <= rhs else 0)] + self.toks
+        elif op[0] == '>':
+            self.toks = [('n', 1 if lhs > rhs else 0)] + self.toks
+        elif op[0] == '>=':
+            self.toks = [('n', 1 if lhs >= rhs else 0)] + self.toks
+        return self.parsecmp()
+    
     def parseterm(self):
         lhs = self.parseprod()
         if not len(self.toks) or self.toks[0][0] not in '+-':
@@ -170,7 +210,10 @@ class Parser:
             return -self.parseunary()
         elif self.toks[0][0] == '~':
             self.toks.pop(0)
-            return ~self.parseunary()
+            return ~int(self.parseunary())
+        elif self.toks[0][0] == '!':
+            self.toks.pop(0)
+            return 0 if self.parseunary() else 1
         else:
             return self.parseliteral()
     
@@ -179,15 +222,21 @@ class Parser:
         if self.toks[0][0] == 'f':
             fn = self.toks.pop(0)
             if self.toks[0][0] == '(':
+                # for functions with multiple arguments they have to be stored
+                # in a list that is then used to call the function and produce
+                # the expected output.
                 self.toks.pop(0)
-                args = [self.parseterm()]
+                args = [self.parseequal()]
                 while self.toks[0][0] == ',':
                     self.toks.pop(0)
-                    args += [self.parseterm()]
+                    args += [self.parseequal()]
                 assert self.toks.pop(0)[0] == ')'
                 assert len(args) == fn[2]
                 return fn[1](*args)
             else:
+                # functions taking a single argument can be called without
+                # parentheses with any expression of unary precedence or
+                # higher, including other functions.
                 arg = self.parseunary()
                 assert fn[2] == 1
                 return fn[1](arg)
@@ -195,7 +244,7 @@ class Parser:
             return self.toks.pop(0)[1]
         elif self.toks[0][0] == '(':
             self.toks.pop(0)
-            expr = self.parseterm()
+            expr = self.parseequal()
             assert self.toks.pop(0)[0] == ')'
             return expr
     
@@ -203,8 +252,9 @@ class Parser:
         try:
             self.toks = toks
             assert len(self.toks)
-            result = self.parseterm()
+            result = self.parseequal()
             assert not len(self.toks)
+            # make output be printed without a .0 if possible.
             rfloor = int(math.floor(result))
             return rfloor if result == rfloor else result
         except:
