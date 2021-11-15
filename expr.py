@@ -2,8 +2,8 @@ import math
 
 # dictionary of valid constants.
 constmap = {
-    'true':  ('n', 1),
-    'false': ('n', 0),
+    'true':  ('b', 1),
+    'false': ('b', 0),
     'e':     ('n', math.e),
     'pi':    ('n', math.pi),
 }
@@ -13,6 +13,10 @@ fnargs = {
     'sqrt':  1,
     'cbrt':  1,
     'abs':   1,
+    
+    'float': 1,
+    'int':   1,
+    'bool':  1,
     
     'floor': 1,
     'ceil':  1,
@@ -44,36 +48,40 @@ fnargs = {
 
 # dictionary of each function that can be used in an expression.
 fnmap = {
-    'sqrt':   lambda x: math.sqrt(x),
-    'cbrt':   lambda x: math.cbrt(x),
-    'abs':    lambda x: x if x >= 0 else -x,
+    'sqrt':   lambda x: ('n', math.sqrt(x[1])),
+    'cbrt':   lambda x: ('n', math.cbrt(x[1])),
+    'abs':    lambda x: ('n', x[1] if x[1] >= 0 else -x[1]),
     
-    'floor':  lambda x: math.floor(x),
-    'ceil':   lambda x: math.ceil(x),
-    'trunc':  lambda x: math.trunc(x),
+    'float':  lambda x: ('n', x[1]),
+    'int':    lambda x: ('n', math.trunc(x[1])),
+    'bool':   lambda x: ('b', 1 if x[1] else 0),
     
-    'exp':    lambda x: math.exp(x),
-    'exp2':   lambda x: 2.0 ** x,
-    'exp10':  lambda x: 10.0 ** x,
+    'floor':  lambda x: ('n', math.floor(x[1])),
+    'ceil':   lambda x: ('n', math.ceil(x[1])),
+    'trunc':  lambda x: ('n', math.trunc(x[1])),
     
-    'log':    lambda x: math.log(x),
-    'log2':   lambda x: math.log2(x),
-    'log10':  lambda x: math.log10(x),
+    'exp':    lambda x: ('n', math.exp(x[1])),
+    'exp2':   lambda x: ('n', 2.0 ** x[1]),
+    'exp10':  lambda x: ('n', 10.0 ** x[1]),
     
-    'sin':    lambda x: math.sin(x),
-    'cos':    lambda x: math.cos(x),
-    'tan':    lambda x: math.tan(x),
-    'asin':   lambda x: math.asin(x),
-    'acos':   lambda x: math.acos(x),
-    'atan':   lambda x: math.atan(x),
-    'atan2':  lambda x, y: math.atan2(x, y),
+    'log':    lambda x: ('n', math.log(x[1])),
+    'log2':   lambda x: ('n', math.log2(x[1])),
+    'log10':  lambda x: ('n', math.log10(x[1])),
     
-    'sinh':   lambda x: math.sinh(x),
-    'cosh':   lambda x: math.cosh(x),
-    'tanh':   lambda x: math.tanh(x),
-    'asinh':  lambda x: math.asinh(x),
-    'acosh':  lambda x: math.acosh(x),
-    'atanh':  lambda x: math.atanh(x),
+    'sin':    lambda x: ('n', math.sin(x[1])),
+    'cos':    lambda x: ('n', math.cos(x[1])),
+    'tan':    lambda x: ('n', math.tan(x[1])),
+    'asin':   lambda x: ('n', math.asin(x[1])),
+    'acos':   lambda x: ('n', math.acos(x[1])),
+    'atan':   lambda x: ('n', math.atan(x[1])),
+    'atan2':  lambda x, y: ('n', math.atan2(x[1], y[1])),
+    
+    'sinh':   lambda x: ('n', math.sinh(x[1])),
+    'cosh':   lambda x: ('n', math.cosh(x[1])),
+    'tanh':   lambda x: ('n', math.tanh(x[1])),
+    'asinh':  lambda x: ('n', math.asinh(x[1])),
+    'acosh':  lambda x: ('n', math.acosh(x[1])),
+    'atanh':  lambda x: ('n', math.atanh(x[1])),
 }
 
 def lex(line):
@@ -139,10 +147,10 @@ class Parser:
             return lhs
         op = self.toks.pop(0)
         rhs = self.parsecmp()
-        if op[0] == '=' or op[0] == '==':
-            self.toks = [('n', 1 if lhs == rhs else 0)] + self.toks
+        if op[0] in ['=', '==']:
+            self.toks = [('b', 1 if lhs[1] == rhs[1] else 0)] + self.toks
         elif op[0] == '!=':
-            self.toks = [('n', 1 if lhs != rhs else 0)] + self.toks
+            self.toks = [('b', 1 if lhs[1] != rhs[1] else 0)] + self.toks
         return self.parseequal()
     
     def parsecmp(self):
@@ -152,13 +160,13 @@ class Parser:
         op = self.toks.pop(0)
         rhs = self.parseterm()
         if op[0] == '<':
-            self.toks = [('n', 1 if lhs < rhs else 0)] + self.toks
+            self.toks = [('b', 1 if lhs[1] < rhs[1] else 0)] + self.toks
         elif op[0] == '<=':
-            self.toks = [('n', 1 if lhs <= rhs else 0)] + self.toks
+            self.toks = [('b', 1 if lhs[1] <= rhs[1] else 0)] + self.toks
         elif op[0] == '>':
-            self.toks = [('n', 1 if lhs > rhs else 0)] + self.toks
+            self.toks = [('b', 1 if lhs[1] > rhs[1] else 0)] + self.toks
         elif op[0] == '>=':
-            self.toks = [('n', 1 if lhs >= rhs else 0)] + self.toks
+            self.toks = [('b', 1 if lhs[1] >= rhs[1] else 0)] + self.toks
         return self.parsecmp()
     
     def parseterm(self):
@@ -168,9 +176,9 @@ class Parser:
         op = self.toks.pop(0)
         rhs = self.parseprod()
         if op[0] == '+':
-            self.toks = [('n', lhs + rhs)] + self.toks
+            self.toks = [('n', lhs[1] + rhs[1])] + self.toks
         elif op[0] == '-':
-            self.toks = [('n', lhs - rhs)] + self.toks
+            self.toks = [('n', lhs[1] - rhs[1])] + self.toks
         return self.parseterm()
     
     def parseprod(self):
@@ -180,11 +188,11 @@ class Parser:
         op = self.toks.pop(0)
         rhs = self.parsebit()
         if op[0] == '*':
-            self.toks = [('n', lhs * rhs)] + self.toks
+            self.toks = [('n', lhs[1] * rhs[1])] + self.toks
         elif op[0] == '/':
-            self.toks = [('n', lhs / rhs)] + self.toks
+            self.toks = [('n', lhs[1] / rhs[1])] + self.toks
         elif op[0] == '%':
-            self.toks = [('n', lhs % rhs)] + self.toks
+            self.toks = [('n', lhs[1] % rhs[1])] + self.toks
         return self.parseprod()
     
     def parsebit(self):
@@ -194,11 +202,11 @@ class Parser:
         op = self.toks.pop(0)
         rhs = self.parseunary()
         if op[0] == '&':
-            self.toks = [('n', int(lhs) & int(rhs))] + self.toks
+            self.toks = [('n', int(lhs[1]) & int(rhs[1]))] + self.toks
         elif op[0] == '|':
-            self.toks = [('n', int(lhs) | int(rhs))] + self.toks
+            self.toks = [('n', int(lhs[1]) | int(rhs[1]))] + self.toks
         elif op[0] == '^':
-            self.toks = [('n', int(lhs) ^ int(rhs))] + self.toks
+            self.toks = [('n', int(lhs[1]) ^ int(rhs[1]))] + self.toks
         return self.parsebit()
     
     def parseunary(self):
@@ -207,18 +215,18 @@ class Parser:
             return self.parseunary()
         elif self.toks[0][0] == '-':
             self.toks.pop(0)
-            return -self.parseunary()
+            return ('n', -self.parseunary()[1])
         elif self.toks[0][0] == '~':
             self.toks.pop(0)
-            return ~int(self.parseunary())
+            return ('n', ~int(self.parseunary()[1]))
         elif self.toks[0][0] == '!':
             self.toks.pop(0)
-            return 0 if self.parseunary() else 1
+            return ('b', 0 if self.parseunary()[1] else 1)
         else:
             return self.parseliteral()
     
     def parseliteral(self):
-        assert self.toks[0][0] in 'fn('
+        assert self.toks[0][0] in 'fbn('
         if self.toks[0][0] == 'f':
             fn = self.toks.pop(0)
             if self.toks[0][0] == '(':
@@ -240,8 +248,8 @@ class Parser:
                 arg = self.parseunary()
                 assert fn[2] == 1
                 return fn[1](arg)
-        elif self.toks[0][0] == 'n':
-            return self.toks.pop(0)[1]
+        elif self.toks[0][0] in 'nb':
+            return self.toks.pop(0)
         elif self.toks[0][0] == '(':
             self.toks.pop(0)
             expr = self.parseequal()
@@ -254,9 +262,12 @@ class Parser:
             assert len(self.toks)
             result = self.parseequal()
             assert not len(self.toks)
+            if result[0] == 'b':
+                return 'true' if result[1] else 'false'
             # make output be printed without a .0 if possible.
-            rfloor = int(math.floor(result))
-            return rfloor if result == rfloor else result
+            else:
+                rfloor = int(math.floor(result[1]))
+                return rfloor if result[1] == rfloor else result[1]
         except:
             raise Exception('invalid expression!')
 
