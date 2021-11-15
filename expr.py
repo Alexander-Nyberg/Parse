@@ -5,10 +5,47 @@ constmap = {
     'pi': math.pi,
 }
 
+fnargs = {
+    'sqrt':  1,
+    'cbrt':  1,
+    'abs':   1,
+    
+    'exp':   1,
+    'exp2':  1,
+    'exp10': 1,
+    
+    'log':   1,
+    'log2':  1,
+    'log10': 1,
+    
+    'sin':   1,
+    'cos':   1,
+    'tan':   1,
+    'asin':  1,
+    'acos':  1,
+    'atan':  1,
+    'atan2': 2,
+    
+    'sinh':  1,
+    'cosh':  1,
+    'tanh':  1,
+    'asinh': 1,
+    'acosh': 1,
+    'atanh': 1,
+}
+
 fnmap = {
     'sqrt':   lambda x: math.sqrt(x),
     'cbrt':   lambda x: math.cbrt(x),
     'abs':    lambda x: x if x >= 0 else -x,
+    
+    'exp':    lambda x: math.exp(x),
+    'exp2':   lambda x: 2.0 ** x,
+    'exp10':  lambda x: 10.0 ** x,
+    
+    'log':    lambda x: math.log(x),
+    'log2':   lambda x: math.log2(x),
+    'log10':  lambda x: math.log10(x),
     
     'sin':    lambda x: math.sin(x),
     'cos':    lambda x: math.cos(x),
@@ -16,6 +53,7 @@ fnmap = {
     'asin':   lambda x: math.asin(x),
     'acos':   lambda x: math.acos(x),
     'atan':   lambda x: math.atan(x),
+    'atan2':  lambda x, y: math.atan2(x, y),
     
     'sinh':   lambda x: math.sinh(x),
     'cosh':   lambda x: math.cosh(x),
@@ -56,7 +94,7 @@ def lex(line):
             id = line[i].lower()
             i += 1
             while True:
-                if i == len(line) or line[i].lower() not in 'abcdefghijklmnopqrstuvwxyz':
+                if i == len(line) or line[i].lower() not in 'abcdefghijklmnopqrstuvwxyz0123456789':
                     break
                 else:
                     id += line[i].lower()
@@ -67,8 +105,8 @@ def lex(line):
                 else:
                     raise Exception(f'unknown identifier \'{id}\'!')
             else:
-                toks += [('f', fnmap[id])]
-        elif line[i] in '+-*/%&|^~()':
+                toks += [('f', fnmap[id], fnargs[id])]
+        elif line[i] in '+-*/%&|^~(),':
             toks += [(line[i], 0)]
             i += 1
         else:
@@ -131,11 +169,17 @@ class Parser:
     def parseliteral(self):
         assert self.toks[0][0] in 'fn('
         if self.toks[0][0] == 'f':
-            fn = self.toks.pop(0)[1]
+            fn = self.toks.pop(0)
             assert self.toks.pop(0)[0] == '('
-            arg = self.parseterm()
+            args = [self.parseterm()]
+            while self.toks[0][0] == ',':
+                self.toks.pop(0)
+                args += [self.parseterm()]
             assert self.toks.pop(0)[0] == ')'
-            return fn(arg)
+            if len(args) != fn[2]:
+                raise Exception()
+            else:
+                return fn[1](*args)
         elif self.toks[0][0] == 'n':
             return self.toks.pop(0)[1]
         elif self.toks[0][0] == '(':
