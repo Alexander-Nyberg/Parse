@@ -1,5 +1,13 @@
 import math
 
+def factorial(x):
+    if x > 0:
+        return x * factorial(x - 1)
+    elif x < 0:
+        raise Exception()
+    else:
+        return 1
+
 # dictionary of valid constants.
 constmap = {
     'true':  ('b', 1),
@@ -29,6 +37,8 @@ fnargs = {
     'log':   1,
     'log2':  1,
     'log10': 1,
+    
+    'fact':  1,
     
     'sin':   1,
     'cos':   1,
@@ -67,6 +77,8 @@ fnmap = {
     'log':   lambda x: ('n', math.log(x[1])),
     'log2':  lambda x: ('n', math.log2(x[1])),
     'log10': lambda x: ('n', math.log10(x[1])),
+    
+    'fact':  lambda x: ('n', factorial(math.trunc(x))),
     
     'sin':   lambda x: ('n', math.sin(x[1])),
     'cos':   lambda x: ('n', math.cos(x[1])),
@@ -132,15 +144,25 @@ def lex(line):
         elif line[i] in '+-*/%^~(),':
             toks += [(line[i], 0)]
             i += 1
-        elif line[i] in '<>!=':
+        elif line[i] in '!=':
             op = line[i]
             i += 1
-            if i != len(line) and line[i] == '=':
+            if i < len(line) and line[i] == '=':
                 op += '='
                 i += 1
             toks += [(op, 0)]
+        elif line[i] in '<>':
+            op = line[i]
+            i += 1
+            if i < len(line) and line[i] == '=':
+                op += '='
+                i += 1
+            elif i < len(line) and line[i] == line[i - 1]:
+                op += line[i - 1]
+                i += 1
+            toks += [(op, 0)]
         elif line[i] in '&|':
-            if i + 1 != len(line) and line[i + 1] == line[i]:
+            if i + 1 < len(line) and line[i + 1] == line[i]:
                 toks += [(line[i] * 2, 0)]
                 i += 2
             else:
@@ -225,17 +247,29 @@ class Parser:
         return self.parseprod()
     
     def parsebit(self):
-        lhs = self.parseunary()
+        lhs = self.parseshift()
         if not len(self.toks) or self.toks[0][0] not in '&|^':
             return lhs
         op = self.toks.pop(0)
-        rhs = self.parseunary()
+        rhs = self.parseshift()
         if op[0] == '&':
             self.toks = [('n', int(lhs[1]) & int(rhs[1]))] + self.toks
         elif op[0] == '|':
             self.toks = [('n', int(lhs[1]) | int(rhs[1]))] + self.toks
         elif op[0] == '^':
             self.toks = [('n', int(lhs[1]) ^ int(rhs[1]))] + self.toks
+        return self.parsebit()
+    
+    def parseshift(self):
+        lhs = self.parseunary()
+        if not len(self.toks) or self.toks[0][0] not in ['<<', '>>']:
+            return lhs
+        op = self.toks.pop(0)
+        rhs = self.parseunary()
+        if op[0] == '<<':
+            self.toks = [('n', int(lhs[1]) << int(rhs[1]))] + self.toks
+        elif op[0] == '>>':
+            self.toks = [('n', int(lhs[1]) >> int(rhs[1]))] + self.toks
         return self.parsebit()
     
     def parseunary(self):
