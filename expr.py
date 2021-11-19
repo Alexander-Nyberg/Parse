@@ -30,6 +30,8 @@ fnargs = {
     'ceil':  1,
     'trunc': 1,
     
+    'pow':   2,
+    
     'exp':   1,
     'exp2':  1,
     'exp10': 1,
@@ -56,6 +58,12 @@ fnargs = {
     'atanh': 1,
 }
 
+def expr_pow(x, y):
+    if x < 0 and y != math.floor(y):
+        raise Exception()
+    else:
+        return x ** y
+
 # dictionary of each function that can be used in an expression.
 fnmap = {
     'sqrt':  lambda x: ('n', math.sqrt(x[1])),
@@ -70,6 +78,8 @@ fnmap = {
     'ceil':  lambda x: ('n', math.ceil(x[1])),
     'trunc': lambda x: ('n', math.trunc(x[1])),
     
+    'pow':   lambda x, y: ('n', expr_pow(x[1], y[1])),
+    
     'exp':   lambda x: ('n', math.exp(x[1])),
     'exp2':  lambda x: ('n', 2.0 ** x[1]),
     'exp10': lambda x: ('n', 10.0 ** x[1]),
@@ -78,7 +88,7 @@ fnmap = {
     'log2':  lambda x: ('n', math.log2(x[1])),
     'log10': lambda x: ('n', math.log10(x[1])),
     
-    'fact':  lambda x: ('n', factorial(math.trunc(x))),
+    'fact':  lambda x: ('n', factorial(math.trunc(x[1]))),
     
     'sin':   lambda x: ('n', math.sin(x[1])),
     'cos':   lambda x: ('n', math.cos(x[1])),
